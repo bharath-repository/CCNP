@@ -1,0 +1,124 @@
+
+BGP
+
+https://www.youtube.com/watch?v=VH8EaC4V-NU&t=997s
+Rules 
+1)	To Run eBGP between directly connected router we need to have point to point ip connectivity
+2)	To Run iBGP between directly connected or dynamically connected (like ibgp over OSPF) we need to have loopback address reachability between routers
+
+Here iBGP Loop prevention mechanism doesn’t forward the route learned from one iBGP router (R1) to another iBGP router (R3) 
+1)	To Avoid this, we can use Mesh connection to R2 to R3
+2)	Or else another method is to use route reflector on R1 – iBGP router  to R3 iBGP router
+
+-------------------------------------------------------------------------------------------------------------------
+R1
+
+OSPF
+
+Router ospf 100
+Network 0.0.0.0 255.255.255.255 area 85
+Sh ip ospf neighbor
+Ping 2.2.2.2
+Ping 3.3.3.3
+
+BGP
+
+Router bgp 100
+Redistribute connected   ------  ### BGP will started to advertise it connected network to peering neighbor
+Neighbor 2.2.2.2 reomte-as 100
+Neighbor 2.2.2.2 description R2
+Neighbor 3.3.3.3 reomte-as 100
+Neighbor 3.3.3.3 description R3
+No synchronization
+No auto-summary	
+Bgp log-neighbor-changes
+Neighbor 3.3.3.3 route-reflector-client
+
+Sh ip bgp sum
+Clear ip bgp * soft ---------------------- will not disrupt the existing bgp routing table **recommended**
+clear ip bgp * soft in
+clear ip bgp * soft out
+
+Here iBGP Loop prevention mechanism doesn’t forward the router learned from one iBGP router (R1) to another iBGP router (R3) 
+3)	To Avoid this we can use Mesh connection to R2 to R3
+4)	Or else another method is to use route reflector on R1 – iBGP router 
+
+------------------------------------------------------------------------------------------------------------------------
+
+R2
+ 
+OSPF
+
+Router ospf 100
+Network 0.0.0.0 255.255.255.255 area 85
+
+BGP
+
+ibgp
+
+Router bgp 100
+Redistribute connected
+Neighbor 1.1.1.1 reomte-as 100
+Neighbor 1.1.1.1 description R1
+Neighbor 1.1.1.1 update-source loopback 0    ####when we are peering using loopback interface in BGP means need to use this command ######
+no synchronization
+No auto-summary	
+Bgp log-neighbor-changes
+
+ebgp
+
+Router bgp 100
+Neighbor 172.158.1.2 reomte-as 400
+Neighbor 172.158.1.2 description R4
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+R3
+
+OSPF
+
+Router ospf 100
+Network 0.0.0.0 255.255.255.255 area 85
+
+BGP
+
+ibgp
+
+Router bgp 100
+Redistribute connected
+Neighbor 1.1.1.1 reomte-as 100
+Neighbor 1.1.1.1 description R1
+Neighbor 1.1.1.1 update-source loopback 0    ####when we are peering using loopback interface in BGP means need to use this command ######
+no synchronization
+No auto-summary	
+Bgp log-neighbor-changes
+ebgp
+Router bgp 100
+Neighbor 172.168.1.2 remote-as 500
+Neighbor 1.1.1.1 description R5
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+R4
+
+BGP
+
+ebgp
+
+Router bgp 400
+Redistribute connected
+Neighbor 172.158.1.1 reomte-as 100
+Neighbor 172.158.1.1 description R2
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+R5
+
+BGP
+
+ebgp
+
+Router bgp 500
+Redistribute connected
+Neighbor 172.168.1.1 reomte-as 100
+Neighbor 172.168.1.1 description R3
