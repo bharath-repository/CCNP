@@ -1,0 +1,217 @@
+IPsec-Suit-Collection protocols works together
+
+R1 - site1 - 10.1.1.1/24 - 101.1.1.0/30
+R2 - ISP-101.1.1.0/30 - 102.1.1.0/30
+R3  site2-20.1.1.1/24 - 102.1.1.0/30
+
+R1 to R3 - Tunnel 10 - 192.168.10.0/24
+
+IPSec Offers:
+1)Authentication - (who are you?)
+2)Data Integrity - (data should not be modify)
+3)Confidentiality - (only authorized person can read the data)
+4)Anti-Reply - (no one can duplicate the packet) - uses seq number
+
+Encryption:
+Converting plain text into cipher text
+1. Bit by Bit encryption (High cpu, most secure, special hardware)
+2. Block by Block (normal use) > 56Bits
+
+Confidentiality
+Encryption Algorithms: DES, 3DES, AES, RC6
+
+Integrity
+Hashing: MD5-128bits,SHA,SHA1-160bits,SHA512,SHA256
+
+Diffie hellman is used to generate a symmetric key over a unsecured channel.
+Symmetric key
+Asymmetric key
+
+Diffie hellman > Process
+R1 > select DH group number > DH mechanism will add random number with DH group number > send the value to R2 > now R1 will add the same random number with received value from R2 = symmetric key
+R2 > select same as R1 DH group number > DH mechanism will add random number with DH group number > send the value to R1 > now R2 will add the same random number with received value from R1 = symmetric key
+
+
+ISAKMP - Internet Security Association Key Management Protocol - Use source/destination same Port UDP 500 
+IKE - Internet Key Exchange - V1 and V2
+IKE (v1)
+1)Main Mode - secure the path/channel - Main mode
+2)Quick Mode - secure the data - Quick mode
+
+ESP - Encapsulation Security Payload - User data encryption 
+1)Tunnel mode
+2)Transport mode
+
+
+IPsec
+1)Phase 1 - secure the path - Main mode
+2)Phase 2 - secure the data - Quick mode
+
+Security Association (SA) consist of the following: 
+Authentication
+Encryption
+Lifetime
+Group
+Hashing
+
+1) This SA parameters are encrypted using DH group symmetric key and send over to internet for negotiation 
+2) This ISAKMP is used to transport this parameters/policy/algorithm/SA
+
+Phase 1 > Main Mode - Exchange parameters
+packet 1 - R1 will send SA Parameters to R2 - plain text
+packet 2 - R2 will send SA Parameters to R1 - plain text
+packet 3 - R1 will send DH key to R2 - plain text
+packet 4 - R2 will send DH key to R1 - plain text
+packet 5 - Used for authentication - encrypted
+packet 6 - Used for authentication - encrypted
+
+Phase 2 > Quick mode - Exchange data
+
+
+
+
+Configuration - IPsec Over GRE Tunnel
+------------------------------------------------------------------
+
+PC1->-R1->-R2->-R3->-PC2
+
+R1 - site1
+-------------------------------------------------------------------
+conf t
+int g1/0 - Lan
+ip add 10.1.1.1 255.255.255.0
+int g2/0 - Wan
+ip add 101.1.1.1 255.255.255.252
+exit
+ip route 0.0.0.0 0.0.0.0 101.1.1.2
+exit
+
+After Both end public ip reachability  
+
+Create GRE tunnel - without any encryption
+
+int tunnel 10
+ip add 192.168.10.1 255.255.255.0
+tunnel source g2/0 (R1 wan interface)
+tunnel destination 102.1.1.1 (R3 wan ip)
+
+ping 192.168.10.2 (to ping site2 router tunnel interface)
+
+router ospf 10
+network 192.168.10.0 0.0.0.255 area 0
+network 10.1.1.0 0.0.0.255 area 0 
+
+Now you can ping site1 system to site2 system - But not secure
+
+------------------------------------------------------------
+Phase 1
+To make it secure
+
+crypto isakmp policy 10
+encryption aes
+hashing md5
+authentication per-share
+group 1
+lifetime 1000
+
+key
+
+crypto isakmp key cisco address 102.1.1.1
+
+show crypto isakmp policy
+show crypto isakmp key
+
+------------------------------------------------------------
+Phase 2
+crypto ipsec transform-set PM esp-3des esp-md5-hmac
+mode transport
+
+crypto ipsec profile PM
+set transform-set PM
+
+int tunnel 10
+tunnel protection ipsec profile PM
+
+show crypto ipsec sa
+--------------------------------------------------------------
+
+
+R2 - isp
+------------------------------------------------------------
+conf t
+int g2/0 - site1
+ip add 101.1.1.2 255.255.255.252
+int g3/0 - site2 
+ip add 102.1.1.2 255.255.255.252
+exit
+----------------------------------------------------------
+
+
+R3 - site2
+-------------------------------------------------------------------
+conf t
+int g1/0 - Lan
+ip add 10.1.1.1 255.255.255.0
+int g2/0 - Wan
+ip add 102.1.1.1 255.255.255.252
+exit
+ip route 0.0.0.0 0.0.0.0 102.1.1.2
+exit
+
+After Both end public ip reachability  
+
+Create GRE tunnel - without any encryption
+
+int tunnel 10
+ip add 192.168.10.2 255.255.255.0
+tunnel source g3/0 (R3 wan interface)
+tunnel destination 101.1.1.1 (R1 wan ip)
+
+ping 192.168.10.1 (to ping site2 router tunnel interface)
+
+router ospf 10
+network 192.168.10.0 0.0.0.255 area 0
+network 20.1.1.0 0.0.0.255 area 0 
+
+Now you can ping site2 system to site1 system - But not secure
+
+------------------------------------------------------------
+Phase 1
+To make it secure
+
+crypto isakmp policy 10
+encryption aes
+hashing md5
+authentication per-share
+group 1
+lifetime 1000
+
+key
+
+crypto isakmp key cisco address 101.1.1.1
+
+show crypto isakmp policy
+show crypto isakmp key
+
+------------------------------------------------------------
+Phase 2
+crypto ipsec transform-set PM esp-3des esp-md5-hmac
+mode transport
+
+crypto ipsec profile PM
+set transform-set PM
+
+int tunnel 10
+tunnel protection ipsec profile PM
+
+show crypto ipsec sa
+--------------------------------------------------------------
+
+Now you can ping site1 system to site2 system - connectivity is secure
+
+
+
+
+
+
+
