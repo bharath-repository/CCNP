@@ -4,13 +4,13 @@ R1#
 ---------------------------------------------------------------------------------------------------------------
 R1#
 R1#
+R1#
+R1#
 R1#sh runn
 R1#sh running-config 
 Building configuration...
 
-Current configuration : 1673 bytes
-!
-! Last configuration change at 02:35:17 UTC Sun Jan 12 2025
+Current configuration : 1706 bytes
 !
 version 15.2
 service timestamps debug datetime msec
@@ -30,7 +30,7 @@ no ip icmp rate-limit unreachable
 !
 !
 !
-!         
+!
 no ip domain lookup
 ip cef    
 no ipv6 cef
@@ -85,10 +85,12 @@ interface FastEthernet0/0
 !
 interface GigabitEthernet1/0
  ip address 10.1.1.1 255.255.255.0
+ ip nat inside
  negotiation auto
 !
 interface GigabitEthernet2/0
  ip address 101.1.1.1 255.255.255.0
+ ip nat outside
  negotiation auto
 !
 interface GigabitEthernet3/0
@@ -105,14 +107,15 @@ router ospf 10
  network 10.1.1.0 0.0.0.255 area 0
  network 192.168.10.0 0.0.0.255 area 0
 !
+ip nat inside source list 10 interface GigabitEthernet2/0 overload
 ip forward-protocol nd
 !
 !
 no ip http server
 no ip http secure-server
 ip route 0.0.0.0 0.0.0.0 101.1.1.2
-ip route 0.0.0.0 0.0.0.0 GigabitEthernet2/0
 !
+access-list 10 permit 10.1.1.0 0.0.0.255
 !
 !
 !
@@ -135,7 +138,10 @@ line vty 0 4
 !
 end
 
-R1# 
+R1#  
+R1#
+R1#
+R1#
 R1#
 
 ---------------------------------------------------------------------------------------------
@@ -148,9 +154,7 @@ isp#sh runn
 isp#sh running-config 
 Building configuration...
 
-Current configuration : 1094 bytes
-!
-! Last configuration change at 23:52:21 UTC Sat Jan 11 2025
+Current configuration : 1102 bytes
 !
 version 15.2
 service timestamps debug datetime msec
@@ -170,9 +174,9 @@ no ip icmp rate-limit unreachable
 !
 !
 !
-!         
+!
 no ip domain lookup
-ip cef
+ip cef    
 no ipv6 cef
 !
 !
@@ -193,11 +197,14 @@ ip tcp synwait-time 5
 ! 
 !
 !
+!
+!
 !         
 !
 !
 !
-!
+interface Loopback10
+ ip address 8.8.8.8 255.255.255.255
 !
 interface FastEthernet0/0
  no ip address
@@ -205,8 +212,7 @@ interface FastEthernet0/0
  duplex full
 !
 interface GigabitEthernet1/0
- no ip address
- shutdown
+ ip address 103.1.1.2 255.255.255.0
  negotiation auto
 !
 interface GigabitEthernet2/0
@@ -252,8 +258,7 @@ end
 
 isp#
 isp#
-isp#
-isp#
+
 
 -------------------------------------------------------------------------------------------------------
 R3#
@@ -261,13 +266,13 @@ R3#
 R3#
 R3#
 R3#
+R3#
+R3#
 R3#sh runn
 R3#sh running-config 
 Building configuration...
 
-Current configuration : 1631 bytes
-!
-! Last configuration change at 02:39:19 UTC Sun Jan 12 2025
+Current configuration : 1708 bytes
 !
 version 15.2
 service timestamps debug datetime msec
@@ -287,9 +292,9 @@ no ip icmp rate-limit unreachable
 !
 !
 !
-!         
+!
 no ip domain lookup
-ip cef
+ip cef    
 no ipv6 cef
 !
 !
@@ -310,7 +315,7 @@ ip tcp synwait-time 5
 ! 
 !
 crypto isakmp policy 10
- encr aes 
+ encr aes
  hash md5
  authentication pre-share
  lifetime 1000
@@ -342,6 +347,7 @@ interface FastEthernet0/0
 !
 interface GigabitEthernet1/0
  ip address 20.1.1.1 255.255.255.0
+ ip nat inside
  negotiation auto
 !
 interface GigabitEthernet2/0
@@ -351,6 +357,7 @@ interface GigabitEthernet2/0
 !
 interface GigabitEthernet3/0
  ip address 102.1.1.1 255.255.255.252
+ ip nat outside
  negotiation auto
 !
 interface GigabitEthernet4/0
@@ -362,6 +369,7 @@ router ospf 10
  network 20.1.1.0 0.0.0.255 area 0
  network 192.168.10.0 0.0.0.255 area 0
 !
+ip nat inside source list 10 interface GigabitEthernet3/0 overload
 ip forward-protocol nd
 !
 !
@@ -369,6 +377,7 @@ no ip http server
 no ip http secure-server
 ip route 0.0.0.0 0.0.0.0 102.1.1.2
 !
+access-list 10 permit 20.1.1.0 0.0.0.255
 !
 !
 !
@@ -396,4 +405,4 @@ R3#
 R3#
 R3#
 R3#
-
+-----------------------------------------------------------------------------------------------
