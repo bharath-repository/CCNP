@@ -1,0 +1,221 @@
+
+CE1----------PE/R1-----R2------R3\PE----------CE2
+
+MPLS/BGP/OSPF/VRF
+
+---------------------------------------------------
+
+R1
+
+To enable MPLS on a interface 
+@global configuration mode 
+ldp - label distribution protocol 
+
+router ospf 65400
+mpls ldp autoconfig            ------------ will enable MPLS on every interface on ospf enabled before 
+
+
+R2
+router ospf 65400
+mpls ldp autoconfig
+
+R3
+router ospf 65400
+mpls ldp autoconfig
+
+
+To check MPLS neighbor
+
+show mpls interfaces
+show mpls ldp neighbor
+traceroute 3.3.3.3    ---- from R1 core router
+
+---------------------------------------------------------------
+
+Setting up MP-BGP - Multiprotocol BGP - R1 & R3
+
+R1
+
+router bgp 65400
+neighbor 3.3.3.3 remote-as 65400
+neighbor 3.3.3.3 update-source lo 0
+no auto-summary
+address-family vpnv4
+neighbor 3.3.3.3 activate
+
+
+R3
+
+router bgp 65400
+neighbor 1.1.1.1 remote-as 65400
+neighbor 1.1.1.1 update-source lo 0
+no auto-summary
+address-family vpnv4
+neighbor 1.1.1.1 activate
+
+To check R1 & R3 BGP neighbor status
+
+show bgp vpnv4 unicast all summary 
+
+------------------------------------------------------------
+
+
+To setup VRF - to isolate different customer traffic in different virtual routing table 
+
+R1
+
+ip vrf CUST-A
+rd 4:4
+route-target both 4:4
+
+router distinguisher - helps us to isolate - 
+different customer using same private ip range - 
+it can be any number like AS number or ip address  
+-------- router target
+
+
+To enable VRF in customer facing interface
+
+int e0/1
+ip vrf forwarding CUST-A
+ip add 192.168.1.1 255.255.255.0
+
+
+To check routing table
+
+sh ip route
+sh ip route vrf CUST-A
+
+ping vrf CUST-A 192.168.1.4
+
+
+To setup OSPF toward CE router 
+
+int e0/1
+ip ospf 2 area 2
+
+
+----------------------------------------------
+
+To setup 
+
+CE - CUST-A-SITE-1
+
+router ospf 2
+network 0.0.0.0 255.255.255.255 area 2
+
+
+------------------------------------------------------------
+
+
+To setup VRF - to isolate different customer traffic in different virtual routing table 
+
+R3
+
+ip vrf CUST-A
+rd 4:4
+route-target both 4:4
+exit
+
+int e0/1
+ip vrf forwarding CUST-A
+ip add 192.168.2.3 255.255.255.0
+
+
+sh ip route
+sh ip route vrf CUST-A
+
+ping vrf CUST-A 192.168.2.6
+
+
+int e0/1
+ip ospf 2 area 2
+
+
+----------------------------------------------
+
+To setup 
+
+CE - CUST-A-SITE-1
+
+router ospf 2
+network 0.0.0.0 255.255.255.255 area 2    
+
+
+------------------------------------------------------
+
+Redistribute the OSPF routes 
+
+R1
+
+conf t
+router bgp 65400
+address-family ipv4 vrf CUST-A
+redistribute ospf 2
+end
+
+R3
+
+conf t
+router bgp 65400
+address-family ipv4 vrf CUST-A
+redistribute ospf 2
+end
+
+
+To check R1 route distribution table
+#sh ip bgp vpnv4 vrf CUST-A
+
+------------------------------------------------------
+
+Redistribute the BGP routes 
+
+R1
+
+router ospf 2
+redistribute bgp 65400 subnets
+
+
+R3
+
+router ospf 2
+redistribute bgp 65400
+
+-----------------------------------------------------
+
+now you can reach from site 1 to site 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
