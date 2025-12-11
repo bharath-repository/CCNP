@@ -38,11 +38,6 @@ IKE (v1)
 1)Main Mode - secure the path/channel - Main mode
 2)Quick Mode - secure the data - Quick mode
 
-ESP - Encapsulation Security Payload - User data encryption 
-1)Tunnel mode
-2)Transport mode
-
-
 IPsec
 1)Phase 1 - secure the path - Main mode
 2)Phase 2 - secure the data - Quick mode
@@ -69,6 +64,9 @@ Phase 2 > Quick mode - Exchange data
   > securing user data
   > ESP > Encapsulation security payload
 
+ESP - Encapsulation Security Payload - User data encryption 
+1)Tunnel mode
+2)Transport mode
 
 
 
