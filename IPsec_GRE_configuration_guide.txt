@@ -66,6 +66,8 @@ packet 5 - Used for authentication - encrypted
 packet 6 - Used for authentication - encrypted
 
 Phase 2 > Quick mode - Exchange data
+  > securing user data
+  > ESP > Encapsulation security payload
 
 
 
