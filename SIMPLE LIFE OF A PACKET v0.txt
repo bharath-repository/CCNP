@@ -1,0 +1,99 @@
+=========================================================================================================================
+
+Topic: Life of packet high-level overview  
+
+Scenario: Home wifi network layout
+
+Request packet Path: Laptop → Unmanaged Switch → ISP WiFi Router → ISP Core → Internet → Google Server
+
+Return packet Path: Google server → Internet → ISP core → ISP wifi router → Unmanaged Switch → Laptop
+
+==========================================================================================================================
+
+1️⃣ Physical Link Up
+
+
+“The moment I connect laptop to LAN cable…”
+
+NIC detects electrical signal → Link up > Speed/duplex negotiated (Auto-negotiation) > Interface state becomes UP > OS marks interface ready
+
+⚠ Important: If the switch port is configured with 802.1X, Port Security, or VLAN assignment, traffic may be restricted initially.
+
+Unmanaged Switch Behavior > No VLAN > No STP config (but STP still runs internally) > Pure MAC learning + forwarding
+
+Typical home wifi router MTU = 1500 bytes > If packet exceeds MTU: Fragmented (IPv4) or dropped if DF bit set
+
+============================================================================================================================
+
+2️⃣ DHCP – DORA Process & ARP Process
+
+
+Step A — DHCP Discover
+
+Laptop sends DHCP Discover > Source IP: 0.0.0.0 > Destination IP: 255.255.255.255 > Destination MAC: FF:FF:FF:FF:FF:FF > UDP port 68 → 67
+
+Switch behavior: Learns laptop MAC in CAM table > Floods broadcast out all ports in that VLAN > Switch will forward traffic if some other device sends unicast to laptop MAC.
+
+
+Step B — DHCP Offer
+
+DHCP Offer can be: Broadcast (common) Or unicast (if supported) > UDP port 67 → 68 > dhcp server will check pool of available ip address & send "preview" with available ip address
+
+DHCP request: the client usually picks the first one it hears from. It then sends a DHCPREQUEST message back to the network > message will accept the offer > UDP port 68 → 67
+
+Same for DHCP ACK — can be broadcast.
+
+After DORA: Laptop receives: IP address, Subnet mask, Default gateway, DNS server, Lease time
+
+
+Step C - ARP resolving mac
+
+Before sending any traffic to default gateway, laptop must:
+
+Check ARP table > If no entry → send ARP Request: “Who has gateway IP?”
+
+Router replies with its MAC > Laptop stores it in ARP cache
+
+=================================================================================================================================
+
+3️⃣ When Opening amazon.com in browser
+
+
+3.1 DNS Resolution Process
+
+Laptop will check name resolution in this order > Browser cache, OS DNS cache, Hosts file, Configured DNS server (from DHCP > DNS can be > ISP DNS, Enterprise DNS, Public DNS)
+
+⚠ Laptop does NOT automatically check “router DNS cache” unless router is configured as DNS forwarder and is set as DNS server in DHCP.
+
+
+3.2 Routing Decision
+
+Laptop Routing table will have: Connected network, Default route (0.0.0.0 → gateway)
+
+So if DNS is outside subnet → traffic goes via default route.
+
+Routing logic: If destination in same subnet → direct ARP, Else → send to default gateway MAC
+
+
+3.3 Packet Formation
+
+Application (DNS query) > Transport (Random source port & destination port UDP 53 usually) > IP layer (source ip: laptop ip & destination ip: dns ip from dhcp) 
+> Ethernet frame (Source MAC: Laptop, Destination MAC: Gateway (if off-subnet))
+
+
+3.4 NAT
+
+ISP CPE router > Stateful NAT > Without NAT entry: Return traffic is dropped. > “If the gateway is performing PAT/NAT, it will translate source IP and port.”
+
+DNS typically uses UDP 53 > TCP 53 only for large responses (zone transfer or truncation)
+
+
+3.5 After DNS Resolution
+
+Once laptop gets Amazon IP: > Now TCP + TLS starts. > TCP 3-way handshake (SYN, SYN-ACK, ACK) > TLS v1.3 handshake (ClientHello, ServerHello, Encrypted Extensions, Certificate validation, Finished) > HTTP/HTTPS request sent inside encrypted TLS session
+
+Now! you can see the amazon.com webpage on browser screen.
+
+====================================================================================================================
+
+
